@@ -4,9 +4,10 @@ import {
   buscarAgendamentoPorId,
   criarAgendamento,
   atualizarAgendamento,
-  excluirAgendamento
+  excluirAgendamento,
+  listarAgendamentosDoUsuario,
+  atualizarObservacoes
 } from '../services/agendamentoService';
-import { listarAgendamentosDoUsuario } from '../services/agendamentoService';
 
 export async function getAgendamentos(req: Request, res: Response) {
   const lista = await listarAgendamentos();
@@ -42,7 +43,6 @@ export async function putAgendamento(req: Request, res: Response) {
   }
 }
 
-
 export async function deleteAgendamento(req: Request, res: Response) {
   const id = parseInt(req.params.id);
   try {
@@ -68,6 +68,22 @@ export async function listarAgendamentosUsuario(req: Request, res: Response) {
 
     const agendamentos = await listarAgendamentosDoUsuario(usuarioId);
     res.json(agendamentos);
+  } catch (error: any) {
+    res.status(400).json({ erro: error.message });
+  }
+}
+
+export async function editarObservacoes(req: Request, res: Response) {
+  try {
+    const id = parseInt(req.params.id);
+    const { observacoes } = req.body;
+
+    if (typeof observacoes !== 'string' || observacoes.trim() === '') {
+      return res.status(400).json({ erro: 'Observações inválidas.' });
+    }
+
+    const atualizado = await atualizarObservacoes(id, observacoes);
+    res.json(atualizado);
   } catch (error: any) {
     res.status(400).json({ erro: error.message });
   }

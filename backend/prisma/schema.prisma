@@ -43,6 +43,7 @@ model Agendamento {
   data          DateTime
   status        StatusAgendamento @default(AGENDADO)
   criadoEm      DateTime    @default(now())
+  observacoes    String? 
 }
 
 model Especialidade {

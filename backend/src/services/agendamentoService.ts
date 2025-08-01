@@ -34,6 +34,7 @@ export async function criarAgendamento(data: {
   pacienteId: number;
   profissionalId: number;
   data: Date;
+  observacoes?: string;
 }) {
   const profissional = await prisma.profissional.findUnique({
     where: { id: data.profissionalId }
@@ -43,10 +44,10 @@ export async function criarAgendamento(data: {
 
   const dataAgendamento = new Date(data.data);
 
-  // Verifica se é data futura
-  if (dataAgendamento <= new Date()) throw new Error('Data deve ser futura');
+  if (dataAgendamento <= new Date()) {
+    throw new Error('Data deve ser futura');
+  }
 
-  // Verifica se já existe agendamento com esse profissional nesse horário
   const conflito = await prisma.agendamento.findFirst({
     where: {
       profissionalId: data.profissionalId,
@@ -60,7 +61,8 @@ export async function criarAgendamento(data: {
     data: {
       pacienteId: data.pacienteId,
       profissionalId: data.profissionalId,
-      data: dataAgendamento
+      data: dataAgendamento,
+      observacoes: data.observacoes
     }
   });
 }
@@ -74,18 +76,15 @@ export async function atualizarAgendamento(
     status: string;
   }>
 ) {
-  // Busca o agendamento atual
   const agendamentoExistente = await prisma.agendamento.findUnique({ where: { id } });
   if (!agendamentoExistente) throw new Error('Agendamento não encontrado');
 
   const dataAtualizada = dados.data ? new Date(dados.data) : undefined;
 
-  // Validação de data futura
   if (dataAtualizada && dataAtualizada <= new Date()) {
     throw new Error('A data do agendamento deve estar no futuro');
   }
 
-  // Validação de conflito de horário
   if (dados.profissionalId && dataAtualizada) {
     const conflito = await prisma.agendamento.findFirst({
       where: {
@@ -111,7 +110,6 @@ export async function atualizarAgendamento(
   });
 }
 
-
 export async function excluirAgendamento(id: number) {
   return prisma.agendamento.delete({
     where: { id }
@@ -134,5 +132,15 @@ export async function listarAgendamentosDoUsuario(usuarioId: number) {
         }
       }
     }
+  });
+}
+
+export async function atualizarObservacoes(id: number, observacoes: string) {
+  const agendamento = await prisma.agendamento.findUnique({ where: { id } });
+  if (!agendamento) throw new Error('Agendamento não encontrado');
+
+  return prisma.agendamento.update({
+    where: { id },
+    data: { observacoes }
   });
 }
