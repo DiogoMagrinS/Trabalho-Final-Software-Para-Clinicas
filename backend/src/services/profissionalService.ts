@@ -28,6 +28,9 @@ export async function criarProfissional(data: {
   diasAtendimento: DiaSemana[];
   horaInicio: string;
   horaFim: string;
+  biografia?: string;
+  formacao?: string;
+  fotoPerfil?: string;
 }) {
   return prisma.profissional.create({ data });
 }
@@ -39,6 +42,9 @@ export async function atualizarProfissional(
     diasAtendimento: DiaSemana[];
     horaInicio: string;
     horaFim: string;
+    biografia: string;
+    formacao: string;
+    fotoPerfil: string;
   }>
 ) {
   return prisma.profissional.update({
@@ -46,6 +52,8 @@ export async function atualizarProfissional(
     data,
   });
 }
+
+
 export async function excluirProfissional(id: number) {
   return prisma.profissional.delete({ where: { id } });
 }
