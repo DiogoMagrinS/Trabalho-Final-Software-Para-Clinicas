@@ -37,8 +37,8 @@ export async function putProfissional(req: Request, res: Response) {
   try {
     const atualizado = await atualizarProfissional(id, req.body);
     res.json(atualizado);
-  } catch {
-    res.status(404).json({ erro: 'Erro ao atualizar profissional' });
+  } catch (error: any) {
+    res.status(400).json({ erro: error.message }); // agora mostra o erro real
   }
 }
 

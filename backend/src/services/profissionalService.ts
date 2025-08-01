@@ -1,7 +1,5 @@
 import { PrismaClient, DiaSemana } from '@prisma/client';
 
-
-
 const prisma = new PrismaClient();
 
 export async function listarProfissionais() {
@@ -25,34 +23,56 @@ export async function buscarProfissionalPorId(id: number) {
 export async function criarProfissional(data: {
   usuarioId: number;
   especialidadeId: number;
-  diasAtendimento: DiaSemana[];
+  diasAtendimento: string[]; // <- aceita como string[]
   horaInicio: string;
   horaFim: string;
-  biografia?: string;
-  formacao?: string;
-  fotoPerfil?: string;
 }) {
-  return prisma.profissional.create({ data });
+  const diasConvertidos = data.diasAtendimento.map((dia) => {
+    if (!Object.values(DiaSemana).includes(dia as DiaSemana)) {
+      throw new Error(`Dia inválido: ${dia}`);
+    }
+    return dia as DiaSemana;
+  });
+
+  return prisma.profissional.create({
+    data: {
+      usuarioId: data.usuarioId,
+      especialidadeId: data.especialidadeId,
+      diasAtendimento: diasConvertidos,
+      horaInicio: data.horaInicio,
+      horaFim: data.horaFim,
+    },
+  });
 }
 
 export async function atualizarProfissional(
   id: number,
   data: Partial<{
     especialidadeId: number;
-    diasAtendimento: DiaSemana[];
+    diasAtendimento: string[];
     horaInicio: string;
     horaFim: string;
-    biografia: string;
-    formacao: string;
-    fotoPerfil: string;
   }>
 ) {
+  let diasConvertidos: DiaSemana[] | undefined = undefined;
+
+  if (data.diasAtendimento) {
+    diasConvertidos = data.diasAtendimento.map((dia) => {
+      if (!Object.values(DiaSemana).includes(dia as DiaSemana)) {
+        throw new Error(`Dia inválido: ${dia}`);
+      }
+      return dia as DiaSemana;
+    });
+  }
+
   return prisma.profissional.update({
     where: { id },
-    data,
+    data: {
+      ...data,
+      diasAtendimento: diasConvertidos,
+    },
   });
 }
-
 
 export async function excluirProfissional(id: number) {
   return prisma.profissional.delete({ where: { id } });
@@ -67,7 +87,7 @@ export async function getAgendaProfissional(id: number) {
       especialidade: { select: { nome: true } },
       diasAtendimento: true,
       horaInicio: true,
-      horaFim: true
-    }
+      horaFim: true,
+    },
   });
 }

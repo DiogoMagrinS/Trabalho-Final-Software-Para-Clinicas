@@ -24,7 +24,7 @@ model Profissional {
   usuarioId        Int           @unique
   especialidade    Especialidade @relation(fields: [especialidadeId], references: [id])
   especialidadeId  Int
-  diasAtendimento  DiaSemana[]
+  diasAtendimento DiaSemana[]
   horaInicio       String
   horaFim          String
   biografia        String?       
