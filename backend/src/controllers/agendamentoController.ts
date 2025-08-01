@@ -6,7 +6,8 @@ import {
   atualizarAgendamento,
   excluirAgendamento,
   listarAgendamentosDoUsuario,
-  atualizarObservacoes
+  atualizarObservacoes,
+  listarHistoricoStatus
 } from '../services/agendamentoService';
 
 export async function getAgendamentos(req: Request, res: Response) {
@@ -84,6 +85,16 @@ export async function editarObservacoes(req: Request, res: Response) {
 
     const atualizado = await atualizarObservacoes(id, observacoes);
     res.json(atualizado);
+  } catch (error: any) {
+    res.status(400).json({ erro: error.message });
+  }
+}
+
+export async function getHistoricoStatus(req: Request, res: Response) {
+  const id = parseInt(req.params.id);
+  try {
+    const historico = await listarHistoricoStatus(id);
+    res.json(historico);
   } catch (error: any) {
     res.status(400).json({ erro: error.message });
   }

@@ -27,8 +27,8 @@ model Profissional {
   diasAtendimento  DiaSemana[]
   horaInicio       String
   horaFim          String
-  biografia        String?       // <- NOVO
-  formacao         String?       // <- NOVO
+  biografia        String?       
+  formacao         String?       
   fotoPerfil       String? 
   agendamentos     Agendamento[] @relation("ProfissionalAgendamentos")
 }
@@ -44,13 +44,24 @@ model Agendamento {
   status        StatusAgendamento @default(AGENDADO)
   criadoEm      DateTime    @default(now())
   observacoes    String? 
+  historicoStatus HistoricoStatus[]
 }
+
+model HistoricoStatus {
+  id             Int                @id @default(autoincrement())
+  agendamentoId  Int
+  agendamento    Agendamento        @relation(fields: [agendamentoId], references: [id])
+  status         StatusAgendamento
+  dataHora       DateTime           @default(now())
+}
+
 
 model Especialidade {
   id   Int     @id @default(autoincrement())
   nome String  @unique
   profissionais Profissional[]
 }
+
 
 enum TipoUsuario {
   PACIENTE

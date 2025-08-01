@@ -76,7 +76,10 @@ export async function atualizarAgendamento(
     status: string;
   }>
 ) {
-  const agendamentoExistente = await prisma.agendamento.findUnique({ where: { id } });
+  const agendamentoExistente = await prisma.agendamento.findUnique({
+    where: { id }
+  });
+
   if (!agendamentoExistente) throw new Error('Agendamento não encontrado');
 
   const dataAtualizada = dados.data ? new Date(dados.data) : undefined;
@@ -90,7 +93,7 @@ export async function atualizarAgendamento(
       where: {
         profissionalId: dados.profissionalId,
         data: dataAtualizada,
-        NOT: { id: id }
+        NOT: { id }
       }
     });
 
@@ -99,7 +102,11 @@ export async function atualizarAgendamento(
     }
   }
 
-  return prisma.agendamento.update({
+  // Verifica se o status mudou
+  const statusAlterado = dados.status && dados.status !== agendamentoExistente.status;
+
+  // Atualiza o agendamento
+  const atualizado = await prisma.agendamento.update({
     where: { id },
     data: {
       pacienteId: dados.pacienteId,
@@ -108,6 +115,18 @@ export async function atualizarAgendamento(
       status: dados.status as any
     }
   });
+
+  // Se o status foi alterado, registra no histórico
+  if (statusAlterado) {
+    await prisma.historicoStatus.create({
+      data: {
+        agendamentoId: id,
+        status: dados.status as any
+      }
+    });
+  }
+
+  return atualizado;
 }
 
 export async function excluirAgendamento(id: number) {
@@ -142,5 +161,12 @@ export async function atualizarObservacoes(id: number, observacoes: string) {
   return prisma.agendamento.update({
     where: { id },
     data: { observacoes }
+  });
+}
+
+export async function listarHistoricoStatus(agendamentoId: number) {
+  return prisma.historicoStatus.findMany({
+    where: { agendamentoId },
+    orderBy: { dataHora: 'asc' }
   });
 }
