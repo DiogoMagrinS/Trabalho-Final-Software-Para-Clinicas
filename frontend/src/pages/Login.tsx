@@ -13,6 +13,7 @@ export default function Login() {
       const res = await api.post('/auth/login', { email, senha });
       localStorage.setItem('token', res.data.token);
       navigate('/dashboard');
+      console.log('Redirecionando para dashboard...');
     } catch (err) {
       console.error('Erro no login:', err);
       alert('Email ou senha inválidos.');

@@ -1,41 +1,47 @@
-
+import { useEffect, useState } from 'react';
 import { getUserFromToken } from '../utils/getUserFromToken';
+import type { DecodedToken } from '../utils/getUserFromToken';
 import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
-  const user = getUserFromToken();
+  const [user, setUser] = useState<DecodedToken | null>(null);
 
-  if (!user) {
-    return <p className="text-red-500">Usuário não autenticado.</p>;
-  }
+  useEffect(() => {
+    const decoded = getUserFromToken();
+    console.log('TOKEN DECODIFICADO:', decoded);
+    setUser(decoded);
+  }, []);
+
+  if (!user) return <p className="p-8 text-gray-500">Carregando dados do usuário...</p>;
 
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-      <p className="mb-2">Bem-vindo, {user.email}</p>
-      <p className="mb-4">Perfil: <strong>{user.tipoUsuario}</strong></p>
+      <p className="mb-2">Bem-vindo, <strong>{user.email}</strong></p>
+      <p className="mb-4">Perfil: <strong>{user.tipo}</strong></p>
 
-      {user.tipoUsuario === 'PACIENTE' && (
-  <div className="space-y-2">
-    <p>Você pode visualizar seus agendamentos.</p>
-    <Link
-      to="/paciente/agendamentos"
-      className="inline-block text-blue-600 underline hover:text-blue-800"
-    >
-      Ver meus agendamentos
-    </Link>
-    <br />
-    <Link
-      to="/paciente/novo-agendamento"
-      className="inline-block bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition mt-2"
-    >
-      Agendar nova consulta
-    </Link>
-  </div>
-)}
+      {user.tipo === 'PACIENTE' && (
+        <div className="space-y-2">
+          <p>Você pode visualizar seus agendamentos.</p>
+          <Link
+            to="/paciente/agendamentos"
+            className="inline-block text-blue-600 underline hover:text-blue-800"
+          >
+            Ver meus agendamentos
+          </Link>
+          <Link to="/paciente/novo-agendamento" className="text-green-600 underline block">
+            Agendar nova consulta
+          </Link>
+        </div>
+      )}
 
-      {user.tipoUsuario === 'PROFISSIONAL' && <p>Você pode gerenciar sua agenda.</p>}
-      {user.tipoUsuario === 'RECEPCIONISTA' && <p>Você pode administrar os agendamentos da clínica.</p>}
+      {user.tipo === 'PROFISSIONAL' && (
+        <p className="text-green-600">Você pode gerenciar sua agenda.</p>
+      )}
+
+      {user.tipo === 'RECEPCIONISTA' && (
+        <p className="text-purple-600">Você pode administrar os agendamentos da clínica.</p>
+      )}
     </div>
   );
 }

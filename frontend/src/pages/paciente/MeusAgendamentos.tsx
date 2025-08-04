@@ -20,7 +20,7 @@ export default function MeusAgendamentos() {
   useEffect(() => {
     async function fetchAgendamentos() {
       try {
-        const res = await api.get('/agendamentos/meus'); // ajuste se necessário
+        const res = await api.get('/agendamentos/meus');
         setAgendamentos(res.data);
       } catch (err) {
         alert('Erro ao carregar agendamentos');

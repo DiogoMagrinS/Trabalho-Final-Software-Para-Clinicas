@@ -9,8 +9,16 @@ import {
 import { getAgendaProfissional } from '../services/profissionalService';
 
 export async function getProfissionais(req: Request, res: Response) {
-  const dados = await listarProfissionais();
-  res.json(dados);
+  try {
+    const especialidade = req.query.especialidade
+      ? parseInt(req.query.especialidade as string)
+      : undefined;
+
+    const dados = await listarProfissionais(especialidade);
+    res.json(dados);
+  } catch (error) {
+    res.status(500).json({ erro: 'Erro ao listar profissionais' });
+  }
 }
 
 export async function getProfissionalPorId(req: Request, res: Response) {

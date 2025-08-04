@@ -1,9 +1,11 @@
+// src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthProvider';
 import PrivateRoute from './routes/PrivateRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import MeusAgendamentos from './pages/paciente/MeusAgendamentos';
+import NovoAgendamento from './pages/paciente/NovoAgendamento';
 
 export default function App() {
   return (
@@ -11,7 +13,6 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/login" />} />
-
           <Route path="/login" element={<Login />} />
           <Route
             path="/dashboard"
@@ -29,6 +30,14 @@ export default function App() {
               </PrivateRoute>
             }
           />
+          <Route
+          path="/paciente/novo-agendamento"
+          element={
+            <PrivateRoute>
+              <NovoAgendamento />
+            </PrivateRoute>
+          }
+/>
         </Routes>
       </BrowserRouter>
     </AuthProvider>

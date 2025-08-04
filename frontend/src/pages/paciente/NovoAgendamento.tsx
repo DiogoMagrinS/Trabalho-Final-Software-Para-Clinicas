@@ -1,7 +1,6 @@
-// src/pages/paciente/NovoAgendamento.tsx
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { useNavigate } from 'react-router-dom';
+import { getUserFromToken } from '../../utils/getUserFromToken';
 
 interface Especialidade {
   id: number;
@@ -10,118 +9,182 @@ interface Especialidade {
 
 interface Profissional {
   id: number;
-  nome: string;
+  usuarioId: number;
+  especialidadeId: number;
+  diasAtendimento: string[];
+  horaInicio: string;
+  horaFim: string;
+  biografia?: string | null;
+  formacao?: string | null;
+  fotoPerfil?: string | null;
+  usuario: {
+    nome: string;
+    email: string;
+    tipo: string;
+  };
 }
 
 export default function NovoAgendamento() {
   const [especialidades, setEspecialidades] = useState<Especialidade[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
-
-  const [especialidadeId, setEspecialidadeId] = useState('');
   const [profissionalId, setProfissionalId] = useState('');
+  const [profissionalSelecionado, setProfissionalSelecionado] = useState<Profissional | null>(null);
+  const [especialidadeId, setEspecialidadeId] = useState('');
   const [data, setData] = useState('');
-  const [horario, setHorario] = useState('');
-  const navigate = useNavigate();
+  const [hora, setHora] = useState('');
+  const [mensagem, setMensagem] = useState('');
 
   useEffect(() => {
-    api.get('/especialidades')
-      .then((res) => setEspecialidades(res.data))
-      .catch((err) => console.error('Erro ao carregar especialidades', err));
+    api.get('/especialidades').then((res) => setEspecialidades(res.data));
   }, []);
 
   useEffect(() => {
     if (especialidadeId) {
-      api.get(`/profissionais?especialidadeId=${especialidadeId}`)
-        .then((res) => setProfissionais(res.data))
-        .catch((err) => console.error('Erro ao carregar profissionais', err));
-    } else {
-      setProfissionais([]);
+      api
+        .get(`/profissionais?especialidade=${especialidadeId}`)
+        .then((res) => {
+          console.log('Profissionais recebidos:', res.data);
+          setProfissionais(res.data);
+        });
+
+      setProfissionalId('');
+      setProfissionalSelecionado(null);
     }
   }, [especialidadeId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      await api.post('/agendamentos', {
-        profissionalId: Number(profissionalId),
-        data,
-        horario,
-      });
-
-      alert('Consulta agendada com sucesso!');
-      navigate('/paciente/agendamentos');
-    } catch (err) {
-      alert('Erro ao agendar consulta.');
-      console.error(err);
-    }
+  const handleSelecionarProfissional = (id: string) => {
+    setProfissionalId(id);
+    const profissional = profissionais.find((p) => p.id === Number(id));
+    setProfissionalSelecionado(profissional ?? null);
   };
 
+  const handleConfirmarAgendamento = async () => {
+    if (!profissionalId || !data || !hora) {
+      setMensagem('Preencha todos os campos para agendar.');
+      return;
+    }
+  
+    const user = getUserFromToken();
+  
+    if (!user?.id) {
+      setMensagem('Usuário não autenticado.');
+      return;
+    }
+  
+    const dataHoraISO = new Date(`${data}T${hora}:00`).toISOString();
+  
+    try {
+      await api.post('/agendamentos', {
+        pacienteId: user.id,
+        profissionalId: Number(profissionalId),
+        data: dataHoraISO,
+      });
+  
+      setMensagem('Agendamento confirmado com sucesso!');
+      setData('');
+      setHora('');
+      setProfissionalId('');
+      setProfissionalSelecionado(null);
+      setEspecialidadeId('');
+    } catch (error) {
+      console.error('Erro ao confirmar agendamento:', error);
+      setMensagem('Erro ao confirmar agendamento. Tente novamente.');
+    }
+  };
+  
   return (
-    <div className="p-8 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Agendar Nova Consulta</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="p-6 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-6">Novo Agendamento</h1>
 
-        <div>
-          <label className="block font-medium mb-1">Especialidade</label>
-          <select
-            value={especialidadeId}
-            onChange={(e) => setEspecialidadeId(e.target.value)}
-            className="w-full border p-2 rounded"
-            required
-          >
-            <option value="">Selecione...</option>
-            {especialidades.map((esp) => (
-              <option key={esp.id} value={esp.id}>{esp.nome}</option>
-            ))}
-          </select>
-        </div>
+      <div className="mb-4">
+        <label className="block mb-1 font-medium">Especialidade</label>
+        <select
+          className="w-full p-2 border rounded"
+          value={especialidadeId}
+          onChange={(e) => setEspecialidadeId(e.target.value)}
+        >
+          <option value="">Selecione...</option>
+          {especialidades.map((esp) => (
+            <option key={esp.id} value={esp.id}>
+              {esp.nome}
+            </option>
+          ))}
+        </select>
+      </div>
 
-        <div>
-          <label className="block font-medium mb-1">Profissional</label>
+      {profissionais.length > 0 && (
+        <div className="mb-4">
+          <label className="block mb-1 font-medium">Profissional</label>
           <select
+            className="w-full p-2 border rounded"
             value={profissionalId}
-            onChange={(e) => setProfissionalId(e.target.value)}
-            className="w-full border p-2 rounded"
-            required
-            disabled={!especialidadeId}
+            onChange={(e) => handleSelecionarProfissional(e.target.value)}
           >
             <option value="">Selecione...</option>
             {profissionais.map((prof) => (
-              <option key={prof.id} value={prof.id}>{prof.nome}</option>
+              <option key={prof.id} value={prof.id}>
+                {prof.usuario.nome}
+              </option>
             ))}
           </select>
         </div>
+      )}
 
-        <div>
-          <label className="block font-medium mb-1">Data</label>
-          <input
-            type="date"
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-            className="w-full border p-2 rounded"
-            required
-          />
+      {profissionalSelecionado && (
+        <div className="mt-6 p-4 border rounded bg-gray-50">
+          <h2 className="text-xl font-semibold mb-3">Informações do Profissional</h2>
+          <p><strong>Nome:</strong> {profissionalSelecionado.usuario.nome}</p>
+          <p><strong>Email:</strong> {profissionalSelecionado.usuario.email}</p>
+          <p><strong>Dias de Atendimento:</strong> {profissionalSelecionado.diasAtendimento.join(', ')}</p>
+          <p><strong>Horário:</strong> {profissionalSelecionado.horaInicio} às {profissionalSelecionado.horaFim}</p>
+          {profissionalSelecionado.formacao && (
+            <p><strong>Formação:</strong> {profissionalSelecionado.formacao}</p>
+          )}
+          {profissionalSelecionado.biografia && (
+            <p><strong>Biografia:</strong> {profissionalSelecionado.biografia}</p>
+          )}
+          {profissionalSelecionado.fotoPerfil && (
+            <div className="mt-3">
+              <img
+                src={profissionalSelecionado.fotoPerfil}
+                alt="Foto do profissional"
+                className="w-32 h-32 object-cover rounded border"
+              />
+            </div>
+          )}
+
+          <div className="mt-6">
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Data</label>
+              <input
+                type="date"
+                className="w-full p-2 border rounded"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block mb-1 font-medium">Horário</label>
+              <input
+                type="time"
+                className="w-full p-2 border rounded"
+                value={hora}
+                onChange={(e) => setHora(e.target.value)}
+              />
+            </div>
+
+            <button
+              onClick={handleConfirmarAgendamento}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
+              Confirmar Agendamento
+            </button>
+
+            {mensagem && <p className="mt-4 text-sm text-green-600">{mensagem}</p>}
+          </div>
         </div>
-
-        <div>
-          <label className="block font-medium mb-1">Horário</label>
-          <input
-            type="time"
-            value={horario}
-            onChange={(e) => setHorario(e.target.value)}
-            className="w-full border p-2 rounded"
-            required
-          />
-        </div>
-
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
-        >
-          Agendar
-        </button>
-      </form>
+      )}
     </div>
   );
 }

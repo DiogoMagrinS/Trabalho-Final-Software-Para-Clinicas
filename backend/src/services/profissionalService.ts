@@ -2,12 +2,12 @@ import { PrismaClient, DiaSemana } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function listarProfissionais() {
-  return prisma.profissional.findMany({
+export async function listarProfissionais(especialidadeId?: number) {
+  return await prisma.profissional.findMany({
+    where: especialidadeId ? { especialidadeId } : undefined,
     include: {
-      usuario: true,
-      especialidade: true,
-    },
+      usuario: true // ✅ Isso vai trazer o nome do profissional
+    }
   });
 }
 
