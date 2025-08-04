@@ -10,7 +10,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const res = await api.post('/login', { email, senha });
+      const res = await api.post('/auth/login', { email, senha });
       localStorage.setItem('token', res.data.token);
       navigate('/dashboard');
     } catch (err) {
@@ -18,7 +18,8 @@ export default function Login() {
       alert('Email ou senha inválidos.');
     }
   };
-
+  
+  
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
       <h1 className="text-3xl font-bold mb-6">Login</h1>
