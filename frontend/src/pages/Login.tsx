@@ -13,37 +13,50 @@ export default function Login() {
       const res = await api.post('/auth/login', { email, senha });
       localStorage.setItem('token', res.data.token);
       navigate('/dashboard');
-      console.log('Redirecionando para dashboard...');
     } catch (err) {
       console.error('Erro no login:', err);
       alert('Email ou senha inválidos.');
     }
   };
-  
-  
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-      <h1 className="text-3xl font-bold mb-6">Login</h1>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        className="mb-3 p-2 border rounded w-72"
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="password"
-        placeholder="Senha"
-        value={senha}
-        className="mb-5 p-2 border rounded w-72"
-        onChange={(e) => setSenha(e.target.value)}
-      />
-      <button
-        onClick={handleLogin}
-        className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded"
-      >
-        Entrar
-      </button>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-300 via-purple-200 to-pink-200">
+      <div className="relative w-full max-w-sm">
+        {/* Logo flutuante */}
+        <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 w-24 h-24 rounded-full bg-white shadow-lg flex items-center justify-center">
+          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
+        </div>
+
+        {/* Card de Login */}
+        <div className="bg-white shadow-2xl rounded-2xl p-10 pt-20">
+          <h1 className="text-3xl font-bold text-center text-gray-800 mb-8">Entrar</h1>
+
+          <div className="flex flex-col gap-4">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+            />
+
+            <input
+              type="password"
+              placeholder="Senha"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              className="p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
+            />
+
+            <button
+              onClick={handleLogin}
+              className="bg-indigo-500 hover:bg-indigo-600 text-white font-semibold py-3 rounded-xl transition duration-300 shadow-md"
+            >
+              Entrar
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
