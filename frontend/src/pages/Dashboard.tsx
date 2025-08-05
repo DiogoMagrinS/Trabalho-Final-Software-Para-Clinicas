@@ -8,7 +8,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     const decoded = getUserFromToken();
-    console.log('TOKEN DECODIFICADO:', decoded);
     setUser(decoded);
   }, []);
 

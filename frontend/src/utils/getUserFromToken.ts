@@ -14,7 +14,6 @@ export function getUserFromToken(): DecodedToken | null {
 
   try {
     const decoded = jwtDecode<DecodedToken>(token);
-    console.log('TOKEN DECODIFICADO:', decoded);
     return decoded;
   } catch (err) {
     console.error('Erro ao decodificar token:', err);

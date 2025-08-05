@@ -39,7 +39,6 @@ app.get('/', (req, res) => {
 // Inicializa o servidor
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Servidor rodando em: http://localhost:${PORT}`);
 });
 
 // Encerra conexão do Prisma em caso de interrupção (Ctrl+C, etc.)

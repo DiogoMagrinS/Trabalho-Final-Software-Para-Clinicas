@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getUserFromToken } from '../../utils/getUserFromToken';
 
@@ -34,6 +35,8 @@ export default function NovoAgendamento() {
   const [hora, setHora] = useState('');
   const [mensagem, setMensagem] = useState('');
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     api.get('/especialidades').then((res) => setEspecialidades(res.data));
   }, []);
@@ -43,7 +46,6 @@ export default function NovoAgendamento() {
       api
         .get(`/profissionais?especialidade=${especialidadeId}`)
         .then((res) => {
-          console.log('Profissionais recebidos:', res.data);
           setProfissionais(res.data);
         });
 
@@ -63,23 +65,23 @@ export default function NovoAgendamento() {
       setMensagem('Preencha todos os campos para agendar.');
       return;
     }
-  
+
     const user = getUserFromToken();
-  
+
     if (!user?.id) {
       setMensagem('Usuário não autenticado.');
       return;
     }
-  
+
     const dataHoraISO = new Date(`${data}T${hora}:00`).toISOString();
-  
+
     try {
       await api.post('/agendamentos', {
         pacienteId: user.id,
         profissionalId: Number(profissionalId),
         data: dataHoraISO,
       });
-  
+
       setMensagem('Agendamento confirmado com sucesso!');
       setData('');
       setHora('');
@@ -91,11 +93,12 @@ export default function NovoAgendamento() {
       setMensagem('Erro ao confirmar agendamento. Tente novamente.');
     }
   };
-  
+
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">Novo Agendamento</h1>
 
+      {/* Especialidade */}
       <div className="mb-4">
         <label className="block mb-1 font-medium">Especialidade</label>
         <select
@@ -112,6 +115,7 @@ export default function NovoAgendamento() {
         </select>
       </div>
 
+      {/* Profissional */}
       {profissionais.length > 0 && (
         <div className="mb-4">
           <label className="block mb-1 font-medium">Profissional</label>
@@ -130,6 +134,7 @@ export default function NovoAgendamento() {
         </div>
       )}
 
+      {/* Informações do profissional */}
       {profissionalSelecionado && (
         <div className="mt-6 p-4 border rounded bg-gray-50">
           <h2 className="text-xl font-semibold mb-3">Informações do Profissional</h2>
@@ -153,6 +158,7 @@ export default function NovoAgendamento() {
             </div>
           )}
 
+          {/* Data e hora */}
           <div className="mt-6">
             <div className="mb-4">
               <label className="block mb-1 font-medium">Data</label>
@@ -181,7 +187,20 @@ export default function NovoAgendamento() {
               Confirmar Agendamento
             </button>
 
-            {mensagem && <p className="mt-4 text-sm text-green-600">{mensagem}</p>}
+            {mensagem && (
+              <div className="mt-4">
+                <p className="text-sm text-green-600">{mensagem}</p>
+
+                {mensagem === 'Agendamento confirmado com sucesso!' && (
+                  <button
+                    onClick={() => navigate('/paciente/agendamentos')}
+                    className="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                  >
+                    Ver Meus Agendamentos
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
