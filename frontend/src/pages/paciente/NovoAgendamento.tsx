@@ -34,19 +34,26 @@ export default function NovoAgendamento() {
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
   const [mensagem, setMensagem] = useState('');
+  const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    api.get('/especialidades').then((res) => setEspecialidades(res.data));
+    api.get('/especialidades')
+      .then((res) => setEspecialidades(res.data))
+      .catch((err) => {
+        console.error('Erro ao carregar especialidades:', err);
+      });
   }, []);
 
   useEffect(() => {
     if (especialidadeId) {
-      api
-        .get(`/profissionais?especialidade=${especialidadeId}`)
+      api.get(`/profissionais?especialidade=${especialidadeId}`)
         .then((res) => {
           setProfissionais(res.data);
+        })
+        .catch((err) => {
+          console.error('Erro ao carregar profissionais:', err);
         });
 
       setProfissionalId('');
@@ -61,6 +68,10 @@ export default function NovoAgendamento() {
   };
 
   const handleConfirmarAgendamento = async () => {
+    // reset de estado de confirmação sempre que tentar novamente
+    setAgendamentoConfirmado(false);
+    setMensagem('');
+
     if (!profissionalId || !data || !hora) {
       setMensagem('Preencha todos os campos para agendar.');
       return;
@@ -83,6 +94,9 @@ export default function NovoAgendamento() {
       });
 
       setMensagem('Agendamento confirmado com sucesso!');
+      setAgendamentoConfirmado(true);
+
+      // Limpar campos, mas manter mensagem/botão visíveis (mensagem renderiza fora do bloco)
       setData('');
       setHora('');
       setProfissionalId('');
@@ -90,7 +104,10 @@ export default function NovoAgendamento() {
       setEspecialidadeId('');
     } catch (error) {
       console.error('Erro ao confirmar agendamento:', error);
+      // Se o backend retornar uma mensagem útil, você pode usar:
+      // const errMsg = error?.response?.data?.erro ?? 'Erro ao confirmar agendamento. Tente novamente.';
       setMensagem('Erro ao confirmar agendamento. Tente novamente.');
+      setAgendamentoConfirmado(false);
     }
   };
 
@@ -186,22 +203,27 @@ export default function NovoAgendamento() {
             >
               Confirmar Agendamento
             </button>
-
-            {mensagem && (
-              <div className="mt-4">
-                <p className="text-sm text-green-600">{mensagem}</p>
-
-                {mensagem === 'Agendamento confirmado com sucesso!' && (
-                  <button
-                    onClick={() => navigate('/paciente/agendamentos')}
-                    className="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-                  >
-                    Ver Meus Agendamentos
-                  </button>
-                )}
-              </div>
-            )}
           </div>
+        </div>
+      )}
+
+      {/* Mensagem e botão de ir para Meus Agendamentos — renderiza fora do bloco profissionalSelecionado */}
+      {mensagem && (
+        <div className="mt-6 max-w-2xl mx-auto">
+          <p className={`text-sm ${agendamentoConfirmado ? 'text-green-600' : 'text-red-600'}`}>
+            {mensagem}
+          </p>
+
+          {agendamentoConfirmado && (
+            <div className="mt-3">
+              <button
+                onClick={() => navigate('/paciente/agendamentos')}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                Ver Meus Agendamentos
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

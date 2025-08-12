@@ -16,8 +16,12 @@ export default function Dashboard() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
-      <p className="mb-2">Bem-vindo, <strong>{user.email}</strong></p>
-      <p className="mb-4">Perfil: <strong>{user.tipo}</strong></p>
+      <p className="mb-2">
+        Bem-vindo, <strong>{user.email}</strong>
+      </p>
+      <p className="mb-4">
+        Perfil: <strong>{user.tipo}</strong>
+      </p>
 
       {user.tipo === 'PACIENTE' && (
         <div className="space-y-2">
@@ -28,18 +32,37 @@ export default function Dashboard() {
           >
             Ver meus agendamentos
           </Link>
-          <Link to="/paciente/novo-agendamento" className="text-green-600 underline block">
+          <Link
+            to="/paciente/novo-agendamento"
+            className="text-green-600 underline block"
+          >
             Agendar nova consulta
           </Link>
         </div>
       )}
 
       {user.tipo === 'PROFISSIONAL' && (
-        <p className="text-green-600">Você pode gerenciar sua agenda.</p>
+        <div className="space-y-2">
+          <p>Você pode gerenciar sua agenda.</p>
+          <Link
+            to="/profissional/agenda"
+            className="inline-block text-purple-600 underline hover:text-purple-800"
+          >
+            Acessar minha agenda
+          </Link>
+        </div>
       )}
 
       {user.tipo === 'RECEPCIONISTA' && (
-        <p className="text-purple-600">Você pode administrar os agendamentos da clínica.</p>
+        <div className="space-y-2">
+          <p>Você pode administrar os agendamentos da clínica.</p>
+          <Link
+            to="/recepcionista/gerenciar"
+            className="inline-block text-pink-600 underline hover:text-pink-800"
+          >
+            Gerenciar agendamentos
+          </Link>
+        </div>
       )}
     </div>
   );
