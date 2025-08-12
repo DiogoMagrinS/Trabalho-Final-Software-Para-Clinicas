@@ -32,11 +32,17 @@ export async function getProfissionalPorId(req: Request, res: Response) {
 }
 
 export async function postProfissional(req: Request, res: Response) {
+  const { usuarioId, especialidadeId, diasAtendimento, horaInicio, horaFim, biografia, formacao, fotoPerfil } = req.body;
+
+  if (!usuarioId || !especialidadeId || !diasAtendimento || !horaInicio || !horaFim || !biografia || !formacao || !fotoPerfil) {
+    return res.status(400).json({ erro: 'Todos os campos são obrigatórios.' });
+  }
+
   try {
     const novo = await criarProfissional(req.body);
     res.status(201).json(novo);
-  } catch {
-    res.status(400).json({ erro: 'Erro ao criar profissional' });
+  } catch (error: any) {
+    res.status(400).json({ erro: error.message || 'Erro ao criar profissional' });
   }
 }
 

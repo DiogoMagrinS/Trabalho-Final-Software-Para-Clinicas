@@ -23,9 +23,12 @@ export async function buscarProfissionalPorId(id: number) {
 export async function criarProfissional(data: {
   usuarioId: number;
   especialidadeId: number;
-  diasAtendimento: string[]; // <- aceita como string[]
+  diasAtendimento: string[];
   horaInicio: string;
   horaFim: string;
+  biografia: string;
+  formacao: string;
+  fotoPerfil: string;
 }) {
   const diasConvertidos = data.diasAtendimento.map((dia) => {
     if (!Object.values(DiaSemana).includes(dia as DiaSemana)) {
@@ -41,9 +44,13 @@ export async function criarProfissional(data: {
       diasAtendimento: diasConvertidos,
       horaInicio: data.horaInicio,
       horaFim: data.horaFim,
+      biografia: data.biografia,
+      formacao: data.formacao,
+      fotoPerfil: data.fotoPerfil,
     },
   });
 }
+
 
 export async function atualizarProfissional(
   id: number,
