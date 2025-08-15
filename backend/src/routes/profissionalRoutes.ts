@@ -4,20 +4,22 @@ import {
   getProfissionalPorId,
   postProfissional,
   putProfissional,
-  deleteProfissional
+  deleteProfissional,
+  getDisponibilidade
 } from '../controllers/profissionalController';
 import { autenticarToken } from '../middlewares/authMiddleware';
-import { agendaProfissional } from '../controllers/profissionalController';
 
 const router = Router();
 
-router.use(autenticarToken); // Protege as rotas
+router.use(autenticarToken);
+
+// Disponibilidade deve vir antes de '/:id'
+router.get('/:id/disponibilidade', getDisponibilidade);
 
 router.get('/', getProfissionais);
 router.get('/:id', getProfissionalPorId);
 router.post('/', postProfissional);
 router.put('/:id', putProfissional);
 router.delete('/:id', deleteProfissional);
-router.get('/:id/agenda', agendaProfissional);
 
 export default router;

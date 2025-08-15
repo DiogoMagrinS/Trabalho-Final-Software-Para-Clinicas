@@ -12,7 +12,7 @@ interface Profissional {
   id: number;
   usuarioId: number;
   especialidadeId: number;
-  diasAtendimento: string[];
+  diasAtendimento: string; // no backend é string
   horaInicio: string;
   horaFim: string;
   biografia?: string | null;
@@ -33,42 +33,64 @@ export default function NovoAgendamento() {
   const [especialidadeId, setEspecialidadeId] = useState('');
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
+  const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
   const [mensagem, setMensagem] = useState('');
   const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
+  const [loadingHorarios, setLoadingHorarios] = useState(false);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     api.get('/especialidades')
       .then((res) => setEspecialidades(res.data))
-      .catch((err) => {
-        console.error('Erro ao carregar especialidades:', err);
-      });
+      .catch((err) => console.error('Erro ao carregar especialidades:', err));
   }, []);
 
   useEffect(() => {
     if (especialidadeId) {
       api.get(`/profissionais?especialidade=${especialidadeId}`)
-        .then((res) => {
-          setProfissionais(res.data);
-        })
-        .catch((err) => {
-          console.error('Erro ao carregar profissionais:', err);
-        });
+        .then((res) => setProfissionais(res.data))
+        .catch((err) => console.error('Erro ao carregar profissionais:', err));
 
       setProfissionalId('');
       setProfissionalSelecionado(null);
+      setData('');
+      setHora('');
+      setHorariosDisponiveis([]);
     }
   }, [especialidadeId]);
 
   const handleSelecionarProfissional = (id: string) => {
     setProfissionalId(id);
-    const profissional = profissionais.find((p) => p.id === Number(id));
-    setProfissionalSelecionado(profissional ?? null);
+    const profissional = profissionais.find((p) => p.id === Number(id)) || null;
+    setProfissionalSelecionado(profissional);
+    setData('');
+    setHora('');
+    setHorariosDisponiveis([]);
   };
 
+  // Quando tiver profissional + data, busca horários disponíveis
+  useEffect(() => {
+    const fetchDisponibilidade = async () => {
+      if (!profissionalId || !data) return;
+      setLoadingHorarios(true);
+      try {
+        const res = await api.get(`/profissionais/${profissionalId}/disponibilidade`, {
+          params: { data }
+        });
+        setHorariosDisponiveis(res.data || []);
+      } catch (err) {
+        console.error('Erro ao buscar disponibilidade:', err);
+        setHorariosDisponiveis([]);
+      } finally {
+        setLoadingHorarios(false);
+      }
+    };
+
+    fetchDisponibilidade();
+  }, [profissionalId, data]);
+
   const handleConfirmarAgendamento = async () => {
-    // reset de estado de confirmação sempre que tentar novamente
     setAgendamentoConfirmado(false);
     setMensagem('');
 
@@ -78,7 +100,6 @@ export default function NovoAgendamento() {
     }
 
     const user = getUserFromToken();
-
     if (!user?.id) {
       setMensagem('Usuário não autenticado.');
       return;
@@ -96,16 +117,14 @@ export default function NovoAgendamento() {
       setMensagem('Agendamento confirmado com sucesso!');
       setAgendamentoConfirmado(true);
 
-      // Limpar campos, mas manter mensagem/botão visíveis (mensagem renderiza fora do bloco)
       setData('');
       setHora('');
       setProfissionalId('');
       setProfissionalSelecionado(null);
       setEspecialidadeId('');
+      setHorariosDisponiveis([]);
     } catch (error) {
       console.error('Erro ao confirmar agendamento:', error);
-      // Se o backend retornar uma mensagem útil, você pode usar:
-      // const errMsg = error?.response?.data?.erro ?? 'Erro ao confirmar agendamento. Tente novamente.';
       setMensagem('Erro ao confirmar agendamento. Tente novamente.');
       setAgendamentoConfirmado(false);
     }
@@ -157,57 +176,61 @@ export default function NovoAgendamento() {
           <h2 className="text-xl font-semibold mb-3">Informações do Profissional</h2>
           <p><strong>Nome:</strong> {profissionalSelecionado.usuario.nome}</p>
           <p><strong>Email:</strong> {profissionalSelecionado.usuario.email}</p>
-          <p><strong>Dias de Atendimento:</strong> {profissionalSelecionado.diasAtendimento.join(', ')}</p>
+          <p>
+            <strong>Dias de Atendimento:</strong>{' '}
+            {profissionalSelecionado.diasAtendimento}
+          </p>
           <p><strong>Horário:</strong> {profissionalSelecionado.horaInicio} às {profissionalSelecionado.horaFim}</p>
-          {profissionalSelecionado.formacao && (
-            <p><strong>Formação:</strong> {profissionalSelecionado.formacao}</p>
-          )}
-          {profissionalSelecionado.biografia && (
-            <p><strong>Biografia:</strong> {profissionalSelecionado.biografia}</p>
-          )}
-          {profissionalSelecionado.fotoPerfil && (
-            <div className="mt-3">
-              <img
-                src={profissionalSelecionado.fotoPerfil}
-                alt="Foto do profissional"
-                className="w-32 h-32 object-cover rounded border"
-              />
-            </div>
-          )}
-
-          {/* Data e hora */}
-          <div className="mt-6">
-            <div className="mb-4">
-              <label className="block mb-1 font-medium">Data</label>
-              <input
-                type="date"
-                className="w-full p-2 border rounded"
-                value={data}
-                onChange={(e) => setData(e.target.value)}
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block mb-1 font-medium">Horário</label>
-              <input
-                type="time"
-                className="w-full p-2 border rounded"
-                value={hora}
-                onChange={(e) => setHora(e.target.value)}
-              />
-            </div>
-
-            <button
-              onClick={handleConfirmarAgendamento}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-            >
-              Confirmar Agendamento
-            </button>
+          
+          {/* Data */}
+          <div className="mt-6 mb-4">
+            <label className="block mb-1 font-medium">Data</label>
+            <input
+              type="date"
+              className="w-full p-2 border rounded"
+              value={data}
+              onChange={(e) => {
+                setData(e.target.value);
+                setHora('');
+              }}
+            />
           </div>
+
+          {/* Horário (somente horários livres vindos da API) */}
+          <div className="mb-4">
+            <label className="block mb-1 font-medium">Horário</label>
+            <select
+              className="w-full p-2 border rounded"
+              value={hora}
+              onChange={(e) => setHora(e.target.value)}
+              disabled={!data || loadingHorarios || horariosDisponiveis.length === 0}
+            >
+              <option value="">
+                {loadingHorarios
+                  ? 'Carregando horários...'
+                  : horariosDisponiveis.length > 0
+                  ? 'Selecione...'
+                  : data
+                  ? 'Sem horários disponíveis para esta data'
+                  : 'Selecione uma data'}
+              </option>
+              {horariosDisponiveis.map((h, i) => (
+                <option key={i} value={h}>{h}</option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            onClick={handleConfirmarAgendamento}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
+            disabled={!data || !hora || !profissionalId}
+          >
+            Confirmar Agendamento
+          </button>
         </div>
       )}
 
-      {/* Mensagem e botão de ir para Meus Agendamentos — renderiza fora do bloco profissionalSelecionado */}
+      {/* Mensagem e botão para ver agendamentos */}
       {mensagem && (
         <div className="mt-6 max-w-2xl mx-auto">
           <p className={`text-sm ${agendamentoConfirmado ? 'text-green-600' : 'text-red-600'}`}>
