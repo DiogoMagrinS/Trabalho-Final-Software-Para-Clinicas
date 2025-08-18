@@ -99,3 +99,5 @@ export async function getHistoricoStatus(req: Request, res: Response) {
     res.status(400).json({ erro: error.message });
   }
 }
+
+
