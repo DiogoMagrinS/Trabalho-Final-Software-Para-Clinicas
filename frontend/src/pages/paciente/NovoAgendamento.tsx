@@ -12,7 +12,7 @@ interface Profissional {
   id: number;
   usuarioId: number;
   especialidadeId: number;
-  diasAtendimento: string; // no backend é string
+  diasAtendimento: string[];
   horaInicio: string;
   horaFim: string;
   biografia?: string | null;
@@ -32,64 +32,68 @@ export default function NovoAgendamento() {
   const [profissionalSelecionado, setProfissionalSelecionado] = useState<Profissional | null>(null);
   const [especialidadeId, setEspecialidadeId] = useState('');
   const [data, setData] = useState('');
-  const [hora, setHora] = useState('');
   const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
+  const [hora, setHora] = useState('');
   const [mensagem, setMensagem] = useState('');
   const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
-  const [loadingHorarios, setLoadingHorarios] = useState(false);
 
   const navigate = useNavigate();
 
+  // 🔹 Carregar especialidades
   useEffect(() => {
     api.get('/especialidades')
       .then((res) => setEspecialidades(res.data))
-      .catch((err) => console.error('Erro ao carregar especialidades:', err));
+      .catch((err) => {
+        console.error('Erro ao carregar especialidades:', err);
+      });
   }, []);
 
+  // 🔹 Carregar profissionais quando mudar especialidade
   useEffect(() => {
     if (especialidadeId) {
       api.get(`/profissionais?especialidade=${especialidadeId}`)
-        .then((res) => setProfissionais(res.data))
-        .catch((err) => console.error('Erro ao carregar profissionais:', err));
+        .then((res) => {
+          setProfissionais(res.data);
+        })
+        .catch((err) => {
+          console.error('Erro ao carregar profissionais:', err);
+        });
 
       setProfissionalId('');
       setProfissionalSelecionado(null);
-      setData('');
-      setHora('');
-      setHorariosDisponiveis([]);
     }
   }, [especialidadeId]);
 
+  // 🔹 Selecionar profissional
   const handleSelecionarProfissional = (id: string) => {
     setProfissionalId(id);
-    const profissional = profissionais.find((p) => p.id === Number(id)) || null;
-    setProfissionalSelecionado(profissional);
-    setData('');
-    setHora('');
+    const profissional = profissionais.find((p) => p.id === Number(id));
+    setProfissionalSelecionado(profissional ?? null);
     setHorariosDisponiveis([]);
+    setHora('');
   };
 
-  // Quando tiver profissional + data, busca horários disponíveis
+  // 🔹 Buscar disponibilidade quando escolher data
   useEffect(() => {
-    const fetchDisponibilidade = async () => {
+    async function fetchDisponibilidade() {
       if (!profissionalId || !data) return;
-      setLoadingHorarios(true);
+
       try {
         const res = await api.get(`/profissionais/${profissionalId}/disponibilidade`, {
           params: { data }
         });
-        setHorariosDisponiveis(res.data || []);
+        setHorariosDisponiveis(res.data);
+        setHora('');
       } catch (err) {
         console.error('Erro ao buscar disponibilidade:', err);
         setHorariosDisponiveis([]);
-      } finally {
-        setLoadingHorarios(false);
       }
-    };
+    }
 
     fetchDisponibilidade();
   }, [profissionalId, data]);
 
+  // 🔹 Confirmar agendamento
   const handleConfirmarAgendamento = async () => {
     setAgendamentoConfirmado(false);
     setMensagem('');
@@ -100,6 +104,7 @@ export default function NovoAgendamento() {
     }
 
     const user = getUserFromToken();
+
     if (!user?.id) {
       setMensagem('Usuário não autenticado.');
       return;
@@ -117,6 +122,7 @@ export default function NovoAgendamento() {
       setMensagem('Agendamento confirmado com sucesso!');
       setAgendamentoConfirmado(true);
 
+      // resetar campos
       setData('');
       setHora('');
       setProfissionalId('');
@@ -170,67 +176,49 @@ export default function NovoAgendamento() {
         </div>
       )}
 
-      {/* Informações do profissional */}
+      {/* Data */}
       {profissionalSelecionado && (
-        <div className="mt-6 p-4 border rounded bg-gray-50">
-          <h2 className="text-xl font-semibold mb-3">Informações do Profissional</h2>
-          <p><strong>Nome:</strong> {profissionalSelecionado.usuario.nome}</p>
-          <p><strong>Email:</strong> {profissionalSelecionado.usuario.email}</p>
-          <p>
-            <strong>Dias de Atendimento:</strong>{' '}
-            {profissionalSelecionado.diasAtendimento}
-          </p>
-          <p><strong>Horário:</strong> {profissionalSelecionado.horaInicio} às {profissionalSelecionado.horaFim}</p>
-          
-          {/* Data */}
-          <div className="mt-6 mb-4">
-            <label className="block mb-1 font-medium">Data</label>
-            <input
-              type="date"
-              className="w-full p-2 border rounded"
-              value={data}
-              onChange={(e) => {
-                setData(e.target.value);
-                setHora('');
-              }}
-            />
-          </div>
-
-          {/* Horário (somente horários livres vindos da API) */}
-          <div className="mb-4">
-            <label className="block mb-1 font-medium">Horário</label>
-            <select
-              className="w-full p-2 border rounded"
-              value={hora}
-              onChange={(e) => setHora(e.target.value)}
-              disabled={!data || loadingHorarios || horariosDisponiveis.length === 0}
-            >
-              <option value="">
-                {loadingHorarios
-                  ? 'Carregando horários...'
-                  : horariosDisponiveis.length > 0
-                  ? 'Selecione...'
-                  : data
-                  ? 'Sem horários disponíveis para esta data'
-                  : 'Selecione uma data'}
-              </option>
-              {horariosDisponiveis.map((h, i) => (
-                <option key={i} value={h}>{h}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={handleConfirmarAgendamento}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-60"
-            disabled={!data || !hora || !profissionalId}
-          >
-            Confirmar Agendamento
-          </button>
+        <div className="mb-4">
+          <label className="block mb-1 font-medium">Data</label>
+          <input
+            type="date"
+            className="w-full p-2 border rounded"
+            value={data}
+            onChange={(e) => setData(e.target.value)}
+          />
         </div>
       )}
 
-      {/* Mensagem e botão para ver agendamentos */}
+      {/* Horários disponíveis */}
+      {horariosDisponiveis.length > 0 && (
+        <div className="mb-4">
+          <label className="block mb-1 font-medium">Horário</label>
+          <select
+            className="w-full p-2 border rounded"
+            value={hora}
+            onChange={(e) => setHora(e.target.value)}
+          >
+            <option value="">Selecione...</option>
+            {horariosDisponiveis.map((h) => (
+              <option key={h} value={h}>
+                {h}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Botão confirmar */}
+      {profissionalSelecionado && (
+        <button
+          onClick={handleConfirmarAgendamento}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          Confirmar Agendamento
+        </button>
+      )}
+
+      {/* Mensagem */}
       {mensagem && (
         <div className="mt-6 max-w-2xl mx-auto">
           <p className={`text-sm ${agendamentoConfirmado ? 'text-green-600' : 'text-red-600'}`}>

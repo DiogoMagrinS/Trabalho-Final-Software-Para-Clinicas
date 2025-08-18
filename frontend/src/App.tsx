@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import MeusAgendamentos from './pages/paciente/MeusAgendamentos';
 import NovoAgendamento from './pages/paciente/NovoAgendamento';
+import AgendaProfissional from './pages/profissional/Agenda';
 
 export default function App() {
   return (
@@ -37,7 +38,14 @@ export default function App() {
               <NovoAgendamento />
             </PrivateRoute>
           }
-/>
+/>        <Route
+            path="/profissional/agenda"
+            element={
+              <PrivateRoute>
+                <AgendaProfissional />
+              </PrivateRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

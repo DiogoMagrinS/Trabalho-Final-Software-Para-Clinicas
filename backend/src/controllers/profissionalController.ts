@@ -56,55 +56,78 @@ export async function deleteProfissional(req: Request, res: Response) {
 
 /**
  * GET /api/profissionais/:id/disponibilidade?data=YYYY-MM-DD
- * Retorna: string[] com horários HH:MM disponíveis em intervalos de 30min
+ * Retorna: string[] com horários HH:MM livres em intervalos de 30min
  */
 export async function getDisponibilidade(req: Request, res: Response) {
+  const profissionalId = parseInt(req.params.id);
+  const data = (req.query.data as string) || '';
+
+  if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    return res.status(400).json({ erro: 'Parâmetro "data" é obrigatório no formato YYYY-MM-DD.' });
+  }
+
   try {
-    const profissionalId = parseInt(req.params.id);
-    const data = req.query.data as string;
-
-    if (!data) {
-      return res.status(400).json({ erro: 'Data é obrigatória (YYYY-MM-DD).' });
-    }
-
     const profissional = await prisma.profissional.findUnique({
-      where: { id: profissionalId },
+      where: { id: profissionalId }
     });
 
     if (!profissional) {
       return res.status(404).json({ erro: 'Profissional não encontrado.' });
     }
 
-    // gerar lista de horários
-    const horaInicio = parseInt(profissional.horaInicio.split(':')[0]);
-    const horaFim = parseInt(profissional.horaFim.split(':')[0]);
-    const horarios: string[] = [];
+    // Se no seu schema for string[] em vez de string, troque para:
+    // const diasAtendimento = profissional.diasAtendimento as string[];
+    const diasAtendimento: string[] = Array.isArray(profissional.diasAtendimento)
+    ? (profissional.diasAtendimento as string[])
+    : [];
+    // Dia da semana (0=Dom,...,6=Sab)
+    const d = new Date(`${data}T00:00:00`);
+    const mapDia = ['DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO'];
+    const diaSemana = mapDia[d.getDay()];
 
-    for (let h = horaInicio; h < horaFim; h++) {
-      horarios.push(`${String(h).padStart(2, '0')}:00`);
+    // Se não atende nesse dia → sem horários
+    if (!diasAtendimento.includes(diaSemana)) {
+      return res.json([]);
     }
 
-    // buscar agendamentos existentes para a data
+    // Gera slots de 30min entre horaInicio e horaFim (ex.: "08:00", "08:30", ...)
+    const gerarSlots = (inicio: string, fim: string) => {
+      const slots: string[] = [];
+      const start = new Date(`${data}T${inicio}:00`);
+      const end = new Date(`${data}T${fim}:00`);
+      let cur = new Date(start);
+
+      while (cur < end) {
+        slots.push(cur.toTimeString().slice(0, 5));
+        cur.setMinutes(cur.getMinutes() + 30);
+      }
+      return slots;
+    };
+
+    const todosHorarios = gerarSlots(profissional.horaInicio, profissional.horaFim);
+
+    // Busca agendamentos do dia que NÃO estejam cancelados
     const agendamentos = await prisma.agendamento.findMany({
       where: {
         profissionalId,
+        status: { not: StatusAgendamento.CANCELADO }, // se não tiver enum, use string 'CANCELADO'
         data: {
-          gte: new Date(`${data}T00:00:00.000Z`),
-          lt: new Date(`${data}T23:59:59.999Z`),
-        },
+          gte: new Date(`${data}T00:00:00`),
+          lt: new Date(`${data}T23:59:59`)
+        }
       },
+      select: { data: true }
     });
 
-    const horariosOcupados = agendamentos.map(a =>
-      new Date(a.data).toISOString().substring(11, 16)
+    const ocupados = new Set(
+      agendamentos.map((a: { data: Date }) => new Date(a.data).toTimeString().slice(0, 5))
+
     );
 
-    // retornar apenas horários livres
-    const horariosDisponiveis = horarios.filter(h => !horariosOcupados.includes(h));
-
-    res.json(horariosDisponiveis);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ erro: 'Erro ao buscar disponibilidade.' });
+    const livres = todosHorarios.filter(h => !ocupados.has(h));
+    return res.json(livres);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ erro: 'Erro ao calcular disponibilidade.' });
   }
 }

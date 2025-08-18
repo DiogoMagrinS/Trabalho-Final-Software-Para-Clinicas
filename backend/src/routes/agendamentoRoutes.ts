@@ -6,24 +6,19 @@ import {
   putAgendamento,
   deleteAgendamento,
   listarAgendamentosUsuario,
-  editarObservacoes,
-  getHistoricoStatus
 } from '../controllers/agendamentoController';
-
 import { autenticarToken } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 router.use(autenticarToken);
 
-// 🟢 Coloque rotas específicas antes da dinâmica ":id"
+// ⚠️ /me PRECISA vir antes de '/:id'
 router.get('/me', listarAgendamentosUsuario);
-router.get('/:id/historico-status', getHistoricoStatus);
-router.get('/:id', getAgendamentoPorId);
-router.get('/', getAgendamentos);
 
+router.get('/', getAgendamentos);
+router.get('/:id', getAgendamentoPorId);
 router.post('/', postAgendamento);
-router.put('/:id/observacoes', editarObservacoes);
 router.put('/:id', putAgendamento);
 router.delete('/:id', deleteAgendamento);
 
