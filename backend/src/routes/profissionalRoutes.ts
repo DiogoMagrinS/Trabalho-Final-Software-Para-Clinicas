@@ -21,6 +21,5 @@ router.get('/:id', getProfissionalPorId);
 router.post('/', postProfissional);
 router.put('/:id', putProfissional);
 router.delete('/:id', deleteProfissional);
-router.get('/:id/disponibilidade', getDisponibilidade);
 
 export default router;
