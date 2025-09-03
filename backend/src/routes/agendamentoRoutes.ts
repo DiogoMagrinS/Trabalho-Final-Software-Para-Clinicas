@@ -5,16 +5,19 @@ import {
   postAgendamento,
   putAgendamento,
   deleteAgendamento,
-  listarAgendamentosUsuario,
+  atualizarStatus
 } from '../controllers/agendamentoController';
+import { listarAgendamentosUsuario } from '../controllers/agendamentoController';
+
 import { autenticarToken } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 router.use(autenticarToken);
 
-// ⚠️ /me PRECISA vir antes de '/:id'
+// ⚠️ coloque /me ANTES de '/:id' para não conflitar
 router.get('/me', listarAgendamentosUsuario);
+router.patch('/:id/status', autenticarToken, atualizarStatus);
 
 router.get('/', getAgendamentos);
 router.get('/:id', getAgendamentoPorId);

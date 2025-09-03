@@ -179,3 +179,24 @@ export async function getDisponibilidade(req: Request, res: Response) {
     return res.status(500).json({ erro: 'Erro ao buscar disponibilidade' });
   }
 }
+
+export async function atualizarStatus(req: Request, res: Response) {
+  try {
+    const id = parseInt(req.params.id);
+    const { status } = req.body; // esperado: 'CONFIRMADO' ou 'CANCELADO'
+
+    if (!['CONFIRMADO', 'CANCELADO'].includes(status)) {
+      return res.status(400).json({ erro: 'Status inválido.' });
+    }
+
+    const atualizado = await prisma.agendamento.update({
+      where: { id },
+      data: { status },
+    });
+
+    res.json(atualizado);
+  } catch (error: any) {
+    console.error(error);
+    res.status(400).json({ erro: error.message });
+  }
+}

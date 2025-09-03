@@ -142,18 +142,13 @@ export async function listarAgendamentosDoUsuario(usuarioId: number) {
     include: {
       profissional: {
         include: {
-          usuario: {
-            select: { nome: true }
-          },
-          especialidade: {
-            select: { nome: true }
-          }
+          usuario: true,          // ✅ pega todos os dados do usuário
+          especialidade: true     // ✅ pega a especialidade correta vinculada ao profissional
         }
       }
     }
   });
 }
-
 export async function atualizarObservacoes(id: number, observacoes: string) {
   const agendamento = await prisma.agendamento.findUnique({ where: { id } });
   if (!agendamento) throw new Error('Agendamento não encontrado');

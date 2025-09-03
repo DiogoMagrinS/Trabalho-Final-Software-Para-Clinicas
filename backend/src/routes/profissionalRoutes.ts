@@ -13,7 +13,7 @@ const router = Router();
 
 router.use(autenticarToken);
 
-// Disponibilidade precisa vir antes de '/:id'
+// Disponibilidade deve vir antes de '/:id'
 router.get('/:id/disponibilidade', getDisponibilidade);
 
 router.get('/', getProfissionais);
