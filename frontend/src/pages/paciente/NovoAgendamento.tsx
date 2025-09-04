@@ -1,8 +1,9 @@
+// src/pages/paciente/NovoAgendamento.tsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { getUserFromToken } from '../../utils/getUserFromToken';
-import { AxiosError } from 'axios'; // ✅ Importação para tipar erros
+import { AxiosError } from 'axios';
 
 interface Especialidade {
   id: number;
@@ -24,6 +25,9 @@ interface Profissional {
     email: string;
     tipo: string;
   };
+  especialidade?: {
+    nome: string;
+  };
 }
 
 export default function NovoAgendamento() {
@@ -34,6 +38,7 @@ export default function NovoAgendamento() {
   const [especialidadeId, setEspecialidadeId] = useState('');
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
+  const [horariosDisponiveis, setHorariosDisponiveis] = useState<string[]>([]);
   const [mensagem, setMensagem] = useState('');
   const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
 
@@ -52,9 +57,7 @@ export default function NovoAgendamento() {
   useEffect(() => {
     if (especialidadeId) {
       api.get(`/profissionais?especialidade=${especialidadeId}`)
-        .then((res) => {
-          setProfissionais(res.data);
-        })
+        .then((res) => setProfissionais(res.data))
         .catch((err) => {
           console.error('Erro ao carregar profissionais:', err);
         });
@@ -64,13 +67,30 @@ export default function NovoAgendamento() {
     }
   }, [especialidadeId]);
 
+  // 🔹 Seleção de profissional
   const handleSelecionarProfissional = (id: string) => {
     setProfissionalId(id);
     const profissional = profissionais.find((p) => p.id === Number(id));
     setProfissionalSelecionado(profissional ?? null);
+    setHorariosDisponiveis([]);
+    setHora('');
   };
 
-  // 🔹 Confirma agendamento
+  // 🔹 Carregar horários disponíveis sempre que profissional + data forem escolhidos
+  useEffect(() => {
+    if (profissionalId && data) {
+      api.get(`/agendamentos/disponibilidade/${profissionalId}?data=${data}`)
+        .then((res) => {
+          setHorariosDisponiveis(res.data);
+        })
+        .catch((err) => {
+          console.error('Erro ao buscar disponibilidade:', err);
+          setHorariosDisponiveis([]);
+        });
+    }
+  }, [profissionalId, data]);
+
+  // 🔹 Confirmar agendamento
   const handleConfirmarAgendamento = async () => {
     setAgendamentoConfirmado(false);
     setMensagem('');
@@ -112,6 +132,7 @@ export default function NovoAgendamento() {
       setProfissionalId('');
       setProfissionalSelecionado(null);
       setEspecialidadeId('');
+      setHorariosDisponiveis([]);
     } catch (error) {
       const err = error as AxiosError<{ erro: string }>;
       console.error('Erro ao confirmar agendamento:', err);
@@ -161,7 +182,7 @@ export default function NovoAgendamento() {
             <option value="">Selecione...</option>
             {profissionais.map((prof) => (
               <option key={prof.id} value={prof.id}>
-                {prof.usuario.nome}
+                {prof.usuario.nome} — {prof.especialidade?.nome ?? ''}
               </option>
             ))}
           </select>
@@ -176,17 +197,29 @@ export default function NovoAgendamento() {
           <p><strong>Email:</strong> {profissionalSelecionado.usuario.email}</p>
           <p><strong>Dias de Atendimento:</strong> {profissionalSelecionado.diasAtendimento.join(', ')}</p>
           <p><strong>Horário:</strong> {profissionalSelecionado.horaInicio} às {profissionalSelecionado.horaFim}</p>
-          {profissionalSelecionado.formacao && <p><strong>Formação:</strong> {profissionalSelecionado.formacao}</p>}
-          {profissionalSelecionado.biografia && <p><strong>Biografia:</strong> {profissionalSelecionado.biografia}</p>}
-          {profissionalSelecionado.fotoPerfil && (
-            <img
-              src={profissionalSelecionado.fotoPerfil}
-              alt="Foto do profissional"
-              className="mt-3 w-32 h-32 object-cover rounded border"
-            />
+
+          {/* Formação */}
+          {profissionalSelecionado.formacao && (
+            <p><strong>Formação:</strong> {profissionalSelecionado.formacao}</p>
           )}
 
-          {/* Seleção de Data e Hora */}
+          {/* Biografia */}
+          {profissionalSelecionado.biografia && (
+            <p><strong>Biografia:</strong> {profissionalSelecionado.biografia}</p>
+          )}
+
+          {/* Foto */}
+          {profissionalSelecionado.fotoPerfil && (
+            <div className="mt-3">
+              <img
+                src={profissionalSelecionado.fotoPerfil}
+                alt={`Foto de ${profissionalSelecionado.usuario.nome}`}
+                className="w-32 h-32 object-cover rounded border"
+              />
+            </div>
+          )}
+
+          {/* Seleção de Data */}
           <div className="mt-6">
             <div className="mb-4">
               <label className="block mb-1 font-medium">Data</label>
@@ -195,19 +228,34 @@ export default function NovoAgendamento() {
                 className="w-full p-2 border rounded"
                 value={data}
                 onChange={(e) => setData(e.target.value)}
-                min={dataMinima} // 🔹 Bloqueia datas passadas
+                min={dataMinima}
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block mb-1 font-medium">Horário</label>
-              <input
-                type="time"
-                className="w-full p-2 border rounded"
-                value={hora}
-                onChange={(e) => setHora(e.target.value)}
-              />
-            </div>
+            {/* Seleção de Horário (só horários disponíveis) */}
+            {data && (
+              <div className="mb-4">
+                <label className="block mb-1 font-medium">Horário</label>
+                <select
+                  className="w-full p-2 border rounded"
+                  value={hora}
+                  onChange={(e) => setHora(e.target.value)}
+                  disabled={!horariosDisponiveis.length}
+                >
+                  <option value="">Selecione...</option>
+                  {horariosDisponiveis.map((h) => (
+                    <option key={h} value={h}>
+                      {h}
+                    </option>
+                  ))}
+                </select>
+                {!horariosDisponiveis.length && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Nenhum horário disponível para esta data.
+                  </p>
+                )}
+              </div>
+            )}
 
             <button
               onClick={handleConfirmarAgendamento}

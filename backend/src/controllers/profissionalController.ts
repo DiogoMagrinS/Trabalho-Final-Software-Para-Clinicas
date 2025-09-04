@@ -11,8 +11,16 @@ import { PrismaClient, StatusAgendamento } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function getProfissionais(req: Request, res: Response) {
-  const dados = await listarProfissionais();
-  res.json(dados);
+  try {
+    const especialidadeId = req.query.especialidade
+      ? parseInt(req.query.especialidade as string)
+      : undefined;
+
+    const dados = await listarProfissionais(especialidadeId);
+    res.json(dados);
+  } catch (error) {
+    res.status(400).json({ erro: 'Erro ao buscar profissionais' });
+  }
 }
 
 export async function getProfissionalPorId(req: Request, res: Response) {

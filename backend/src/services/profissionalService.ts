@@ -6,7 +6,8 @@ export async function listarProfissionais(especialidadeId?: number) {
   return await prisma.profissional.findMany({
     where: especialidadeId ? { especialidadeId } : undefined,
     include: {
-      usuario: true // ✅ Isso vai trazer o nome do profissional
+      usuario: true,
+      especialidade: true // ✅ já trás o nome da especialidade
     }
   });
 }
