@@ -149,6 +149,35 @@ export async function listarAgendamentosDoUsuario(usuarioId: number) {
     }
   });
 }
+
+export async function listarAgendamentosDoProfissional(profissionalId: number, data?: string) {
+  let filtroData = {};
+
+  if (data) {
+    const inicio = new Date(`${data}T00:00:00`);
+    const fim = new Date(`${data}T23:59:59`);
+    filtroData = {
+      data: {
+        gte: inicio,
+        lte: fim,
+      },
+    };
+  }
+
+  return prisma.agendamento.findMany({
+    where: {
+      profissionalId,
+      ...filtroData,
+    },
+    orderBy: { data: "asc" },
+    include: {
+      paciente: {
+        select: { id: true, nome: true, email: true },
+      },
+    },
+  });
+}
+
 export async function atualizarObservacoes(id: number, observacoes: string) {
   const agendamento = await prisma.agendamento.findUnique({ where: { id } });
   if (!agendamento) throw new Error('Agendamento não encontrado');

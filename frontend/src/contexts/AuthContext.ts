@@ -3,6 +3,11 @@ import { createContext } from 'react';
 
 interface AuthContextType {
   isAuthenticated: boolean;
+  user: { 
+    id: number; 
+    email: string; 
+    tipo: 'PACIENTE' | 'PROFISSIONAL' | 'RECEPCIONISTA'; 
+  } | null;
   logout: () => void;
 }
 

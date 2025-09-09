@@ -8,7 +8,8 @@ import {
   excluirAgendamento,
   listarAgendamentosDoUsuario,
   atualizarObservacoes,
-  listarHistoricoStatus
+  listarHistoricoStatus,
+  listarAgendamentosDoProfissional
 } from '../services/agendamentoService';
 
 const prisma = new PrismaClient();
@@ -103,6 +104,7 @@ export async function getHistoricoStatus(req: Request, res: Response) {
   }
 }
 
+
 // GET /profissionais/:id/disponibilidade?data=2025-08-20
 export async function getDisponibilidade(req: Request, res: Response) {
   const profissionalId = parseInt(req.params.id);
@@ -177,6 +179,37 @@ export async function getDisponibilidade(req: Request, res: Response) {
   } catch (err) {
     console.error('Erro ao buscar disponibilidade:', err);
     return res.status(500).json({ erro: 'Erro ao buscar disponibilidade' });
+  }
+}
+export async function listarAgendamentosProfissional(req: Request, res: Response) {
+  try {
+    if (!req.usuario) {
+      return res.status(401).json({ erro: "Token inválido ou ausente." });
+    }
+
+    const usuarioId = req.usuario.id;
+    const tipo = req.usuario.tipo;
+
+    if (tipo !== "PROFISSIONAL") {
+      return res.status(403).json({ erro: "Acesso permitido apenas para profissionais." });
+    }
+
+    // busca id do profissional vinculado ao usuário
+    const profissional = await prisma.profissional.findUnique({
+      where: { usuarioId },
+    });
+
+    if (!profissional) {
+      return res.status(404).json({ erro: "Profissional não encontrado." });
+    }
+
+    const { data } = req.query;
+    const agendamentos = await listarAgendamentosDoProfissional(profissional.id, data as string);
+
+    return res.json(agendamentos);
+  } catch (error: any) {
+    console.error(error);
+    return res.status(400).json({ erro: error.message });
   }
 }
 

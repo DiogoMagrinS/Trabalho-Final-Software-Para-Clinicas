@@ -1,113 +1,100 @@
-// frontend/src/pages/profissional/Agenda.tsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import api from '../../services/api';
-import { getUserFromToken } from '../../utils/getUserFromToken';
-import { Link } from 'react-router-dom';
-import { AxiosError } from 'axios';
+import { useAuth } from '../../hooks/useAuth';
+import AgendamentoCard from "./components/AgendamentoCard";
+import PacienteModal from "./components/PacienteModal";
 
 interface Agendamento {
   id: number;
-  data: string; // ISO
+  data: string;
+  hora: string;
+  status: string;
   paciente: {
-    usuario: {
-      nome: string;
-      email: string;
-    };
-  };
-  profissional: {
-    usuario: {
-      nome: string;
-      email: string;
-    };
-    especialidade: {
-      nome: string;
-    };
+    nome: string;
+    email: string;
   };
 }
 
-export default function AgendaProfissional() {
+export default function Agenda() {
+  const { user } = useAuth();
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string>('');
+  const [dataSelecionada, setDataSelecionada] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+  const [pacienteSelecionado, setPacienteSelecionado] = useState<Agendamento | null>(null);
 
   useEffect(() => {
-    const user = getUserFromToken();
-
-    if (!user) {
-      setErro('Usuário não autenticado.');
-      setLoading(false);
-      return;
-    }
-
-    if (user.tipo !== 'PROFISSIONAL') {
-      setErro('Acesso permitido apenas para profissionais.');
-      setLoading(false);
-      return;
-    }
-
-    async function fetchAgenda() {
+    async function carregarAgendamentos() {
       try {
-        const res = await api.get('/agendamentos/minha-agenda');
+        setLoading(true);
+        const res = await api.get(`/agendamentos/profissional/me?data=${dataSelecionada}`);
         setAgendamentos(res.data);
       } catch (err) {
-        const axiosErr = err as AxiosError<{ erro: string }>;
-        const msg = axiosErr.response?.data?.erro ?? 'Erro ao carregar agenda.';
-        setErro(msg);
+        console.error("Erro ao carregar agendamentos", err);
       } finally {
         setLoading(false);
       }
     }
+    if (user?.id) {
+      carregarAgendamentos();
+    }
+  }, [user, dataSelecionada]);
 
-    fetchAgenda();
-  }, []);
+  async function carregarAgendamentos() {
+    try {
+      setLoading(true);
+      const res = await api.get(`/agendamentos/profissional/me?data=${dataSelecionada}`);
+      setAgendamentos(res.data);
+    } catch (err) {
+      console.error("Erro ao carregar agendamentos", err);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  if (loading) return <p className="p-6">Carregando agenda...</p>;
-
-  if (erro) {
-    return (
-      <div className="p-6 space-y-3">
-        <p className="text-red-600">{erro}</p>
-        {erro.includes('Perfil de profissional não encontrado') && (
-          <p className="text-sm">
-            Vá ao menu de cadastro e complete seu perfil de profissional.
-          </p>
-        )}
-        <Link to="/dashboard" className="text-blue-600 underline">
-          Voltar ao Dashboard
-        </Link>
-      </div>
-    );
+  async function atualizarStatus(id: number, status: string) {
+    try {
+      await api.put(`/agendamentos/${id}/status`, { status });
+      carregarAgendamentos();
+    } catch (err) {
+      console.error("Erro ao atualizar status", err);
+    }
   }
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Minha Agenda</h1>
 
-      {agendamentos.length === 0 ? (
-        <p>Nenhum agendamento encontrado.</p>
+      <input
+        type="date"
+        value={dataSelecionada}
+        onChange={(e) => setDataSelecionada(e.target.value)}
+        className="border p-2 rounded mb-4"
+      />
+
+      {loading ? (
+        <p>Carregando...</p>
+      ) : agendamentos.length === 0 ? (
+        <p>Nenhum agendamento para esta data.</p>
       ) : (
-        <ul className="space-y-4">
-          {agendamentos.map((a) => {
-            const dt = new Date(a.data);
-            return (
-              <li key={a.id} className="p-4 border rounded bg-white shadow">
-                <p>
-                  <strong>Data:</strong> {dt.toLocaleDateString()}
-                </p>
-                <p>
-                  <strong>Hora:</strong>{' '}
-                  {dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
-                <p>
-                  <strong>Paciente:</strong> {a.paciente.usuario.nome} ({a.paciente.usuario.email})
-                </p>
-                <p>
-                  <strong>Especialidade:</strong> {a.profissional.especialidade?.nome}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="space-y-3">
+          {agendamentos.map((a) => (
+            <AgendamentoCard
+              key={a.id}
+              agendamento={a}
+              onAtualizarStatus={atualizarStatus}
+              onVerPaciente={() => setPacienteSelecionado(a)}
+            />
+          ))}
+        </div>
+      )}
+
+      {pacienteSelecionado && (
+        <PacienteModal
+          agendamento={pacienteSelecionado}
+          onClose={() => setPacienteSelecionado(null)}
+        />
       )}
     </div>
   );
